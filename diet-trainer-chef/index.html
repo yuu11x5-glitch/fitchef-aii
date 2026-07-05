@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitChef AI - 専属トレーナー＆シェフのAIダイエットパートナー</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- PWA Settings -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="app_icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Chart.js CDN for visual data charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('ServiceWorker registered'))
+          .catch(err => console.error('ServiceWorker registration failed', err));
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">F</div>
+        <span>FitChef AI</span>
+      </div>
+      
+      <nav>
+        <ul class="nav-links">
+          <li class="nav-item active" data-page="home">
+            <a onclick="switchPage('home')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              ダッシュボード
+            </a>
+          </li>
+          <li class="nav-item" data-page="diet">
+            <a onclick="switchPage('diet')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23 19c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h4l2-3h6l2 3h4c1.1 0 2 .9 2 2v11z"/><circle cx="12" cy="13" r="4"/></svg>
+              食事解析 AI
+            </a>
+          </li>
+          <li class="nav-item" data-page="workout">
+            <a onclick="switchPage('workout')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6.5 10.5h11v3h-11zm-4-4h3v11h-3zm16.5 0h3v11h-3zM1 12h22"/></svg>
+              筋トレ管理
+            </a>
+          </li>
+          <li class="nav-item" data-page="chef">
+            <a onclick="switchPage('chef')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2c1.1 0 2 .9 2 2v2H10V4c0-1.1.9-2 2-2zm6 11V9c0-3.3-2.7-6-6-6S6 5.7 6 9v4c0 1.7 1.3 3 3 3h6c1.7 0 3-1.3 3-3zm-1 5H7v2h10v-2z"/></svg>
+              シェフの自炊提案
+            </a>
+          </li>
+          <li class="nav-item" data-page="chat">
+            <a onclick="switchPage('chat')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              トレーナーチャット
+            </a>
+          </li>
+          <li class="nav-item" data-page="settings">
+            <a onclick="switchPage('settings')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              設定
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <!-- PROFILE QUICK VIEW -->
+      <div class="user-widget">
+        <div class="user-avatar" id="widget-avatar">U</div>
+        <div class="user-info">
+          <span class="user-name" id="widget-name">ゲストユーザー</span>
+          <span class="user-status" id="widget-goal">ダイエット中</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      
+      <!-- 1. DASHBOARD PAGE -->
+      <section id="page-home" class="page-section active">
+        <div class="page-header">
+          <h1 class="page-title">ダッシュボード</h1>
+          <p class="page-subtitle">今日の目標と現在の進捗状況です。</p>
+        </div>
+        
+        <!-- Target Rings & Summary Cards -->
+        <div class="stats-container">
+          <div class="glass-card stat-card neon-border">
+            <span class="stat-label">摂取カロリー</span>
+            <div class="stat-value"><span id="dash-cal-in">0</span> <span class="stat-unit">/ <span id="dash-cal-target">2000</span> kcal</span></div>
+            <div class="stat-progress-bar"><div class="stat-progress-fill" id="fill-cal"></div></div>
+          </div>
+          <div class="glass-card stat-card">
+            <span class="stat-label">消費カロリー (運動)</span>
+            <div class="stat-value"><span id="dash-cal-out">0</span> <span class="stat-unit">kcal</span></div>
+            <div class="stat-progress-bar"><div class="stat-progress-fill" id="fill-workout" style="background: var(--color-secondary)"></div></div>
+          </div>
+          <div class="glass-card stat-card">
+            <span class="stat-label">水分補給</span>
+            <div class="stat-value"><span id="dash-water">0</span> <span class="stat-unit">/ 2000 ml</span></div>
+            <div class="stat-progress-bar"><div class="stat-progress-fill" id="fill-water" style="background: #3b82f6; width: 0%;"></div></div>
+            <button class="btn btn-secondary" onclick="addWater(250)" style="margin-top: 10px; padding: 6px 12px; font-size: 0.8rem;">+ 250ml追加</button>
+          </div>
+          <div class="glass-card stat-card">
+            <span class="stat-label">目標体重</span>
+            <div class="stat-value"><span id="dash-weight">--</span> <span class="stat-unit">kg</span></div>
+            <span class="stat-label" style="font-size: 0.75rem;">目標まであと <span id="dash-weight-diff">--</span> kg</span>
+          </div>
+        </div>
+
+        <div class="grid-main">
+          <!-- PFC Balance & Progress -->
+          <div class="glass-card">
+            <h2 style="margin-bottom: 1.5rem;">PFCバランス (本日)</h2>
+            <div class="pfc-container">
+              <div class="pfc-chart-wrapper">
+                <canvas id="pfcChart"></canvas>
+              </div>
+              <div class="pfc-legends">
+                <div class="pfc-legend-item">
+                  <div class="legend-color legend-p"></div>
+                  <div>P (タンパク質): <span id="pfc-p-val">0</span>g / <span id="pfc-p-target">120</span>g</div>
+                </div>
+                <div class="pfc-legend-item">
+                  <div class="legend-color legend-f"></div>
+                  <div>F (脂質): <span id="pfc-f-val">0</span>g / <span id="pfc-f-target">50</span>g</div>
+                </div>
+                <div class="pfc-legend-item">
+                  <div class="legend-color legend-c"></div>
+                  <div>C (炭水化物): <span id="pfc-c-val">0</span>g / <span id="pfc-c-target">240</span>g</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coach Quick Message -->
+          <div class="glass-card advice-card">
+            <h3 style="margin-bottom: 1rem;">専属アドバイザー</h3>
+            
+            <div class="coach-header">
+              <div class="coach-avatar">🏋️</div>
+              <div>
+                <div class="coach-name" id="trainer-name">レオ (Trainer)</div>
+                <div class="coach-title">運動・減量担当</div>
+              </div>
+            </div>
+            <p class="advice-text" id="trainer-quick-advice">「まずは目標カロリーの設定を完了させましょう！APIキーを設定すると、食べたものの写真から詳細なアドバイスを返せるようになります！」</p>
+            
+            <hr style="border: none; border-top: 1px solid var(--border-light); margin: 1.5rem 0;">
+            
+            <div class="coach-header">
+              <div class="coach-avatar">🍳</div>
+              <div>
+                <div class="coach-name" id="chef-name">レイ (Chef)</div>
+                <div class="coach-title">自炊・レシピ担当</div>
+              </div>
+            </div>
+            <p class="advice-text" id="chef-quick-advice">「自炊は無理なく続けることが成功のコツです。冷蔵庫の余り物からでも美味しいダイエットレシピをいつでも提案しますよ。」</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. DIET ANALYSIS PAGE -->
+      <section id="page-diet" class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">食事解析 AI</h1>
+          <p class="page-subtitle">食べたものを写真で撮影・アップロードしてカロリーとPFCを算出します。</p>
+        </div>
+
+        <div class="grid-main">
+          <!-- Upload Area & Form -->
+          <div class="glass-card">
+            <div class="upload-area" id="drop-zone" onclick="triggerFileInput()">
+              <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <p>ここに食事の写真をドラッグ＆ドロップするか、<br><span style="color: var(--color-primary); font-weight: bold;">クリックしてファイルを選択</span></p>
+              <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+            </div>
+
+            <!-- Preview and Action -->
+            <div class="preview-container" id="preview-container">
+              <img id="image-preview" class="image-preview" src="" alt="食事プレビュー">
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="analyzeFoodImage()">AI解析を実行する</button>
+                <button class="btn btn-secondary" onclick="resetImageUpload()">やり直す</button>
+              </div>
+            </div>
+
+            <!-- Loader -->
+            <div class="analyzer-loader" id="analyzer-loader">
+              <div class="spinner"></div>
+              <h3>専属AIトレーナー＆シェフが解析中...</h3>
+              <p style="color: var(--text-secondary);">カロリー、PFCバランス、およびレシピのフィードバックを生成しています。</p>
+            </div>
+          </div>
+
+          <!-- Analysis Results Display -->
+          <div class="glass-card neon-border analysis-results" id="analysis-results">
+            <h2 style="margin-bottom: 1.5rem;">AI解析結果</h2>
+            <div class="stat-card" style="margin-bottom: 1.5rem;">
+              <span class="stat-label">推定料理名</span>
+              <div class="stat-value" id="res-food-name" style="font-size: 1.5rem;">ハンバーグ定食</div>
+            </div>
+            
+            <div class="grid-2" style="margin-bottom: 1.5rem;">
+              <div class="stat-card">
+                <span class="stat-label">エネルギー</span>
+                <div class="stat-value" style="font-size: 1.4rem;" id="res-calories">780 <span class="stat-unit">kcal</span></div>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">タンパク質 (P)</span>
+                <div class="stat-value" style="font-size: 1.4rem; color: var(--color-accent);" id="res-p">28 <span class="stat-unit">g</span></div>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">脂質 (F)</span>
+                <div class="stat-value" style="font-size: 1.4rem; color: #f59e0b;" id="res-f">32 <span class="stat-unit">g</span></div>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">炭水化物 (C)</span>
+                <div class="stat-value" style="font-size: 1.4rem; color: var(--color-primary);" id="res-c">85 <span class="stat-unit">g</span></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="margin-bottom: 0.5rem;">🏋️ トレーナーのアドバイス</h4>
+              <p class="advice-text" id="res-trainer-advice" style="font-size: 0.9rem; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px;">アドバイスがここに表示されます。</p>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="margin-bottom: 0.5rem;">🍳 シェフのアドバイス</h4>
+              <p class="advice-text" id="res-chef-advice" style="font-size: 0.9rem; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px;">アドバイスがここに表示されます。</p>
+            </div>
+
+            <button class="btn btn-accent" style="width: 100%;" onclick="saveMealLog()">この食事をログに追加する</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. WORKOUT TRACKER PAGE -->
+      <section id="page-workout" class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">筋トレ管理</h1>
+          <p class="page-subtitle">日々の筋トレを記録して、消費カロリーや成長を可視化します。</p>
+        </div>
+
+        <div class="grid-main">
+          <!-- Workout Entry -->
+          <div class="glass-card">
+            <h2 style="margin-bottom: 1.5rem;">トレーニングの記録</h2>
+            <form id="workout-form" onsubmit="saveWorkout(event)" style="display: flex; flex-direction: column; gap: 1.2rem;">
+              <!-- クイックテンプレート & コピー -->
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0.5rem; background: rgba(255,255,255,0.01); padding: 10px; border-radius: 8px; border: 1px solid var(--border-light);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="stat-label" style="font-size: 0.8rem;">クイックテンプレート</span>
+                  <button type="button" class="btn btn-secondary" onclick="copyLastWorkout()" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px; margin: 0;">前回記録をコピー</button>
+                </div>
+                <div id="workout-templates" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">まだ履歴がありません</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">種目名</label>
+                  <input type="text" id="work-name" placeholder="ベンチプレス, スクワット など" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">部位</label>
+                  <select id="work-category">
+                    <option value="胸">胸</option>
+                    <option value="背中">背中</option>
+                    <option value="脚">脚</option>
+                    <option value="肩">肩</option>
+                    <option value="腕">腕</option>
+                    <option value="腹筋">腹筋</option>
+                    <option value="有酸素">有酸素</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">重量 (kg)</label>
+                  <input type="number" id="work-weight" value="40" step="0.5" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">回数 (Reps)</label>
+                  <input type="number" id="work-reps" value="10" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">セット数</label>
+                  <input type="number" id="work-sets" value="3" required>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label class="stat-label">推定消費カロリー (kcal)</label>
+                <input type="number" id="work-calories" value="150" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary">トレーニングを追加</button>
+            </form>
+          </div>
+
+          <!-- Daily Workouts & Coach Suggestion -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Today's Log -->
+            <div class="glass-card">
+              <h3 style="margin-bottom: 1rem;">今日のトレーニング履歴</h3>
+              <div id="workout-list">
+                <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">今日のトレーニング記録はありません。</p>
+              </div>
+            </div>
+
+            <!-- Coach Plan -->
+            <div class="glass-card advice-card">
+              <h3 style="margin-bottom: 1rem;">🏋️ おすすめトレーニング</h3>
+              <p class="advice-text" style="font-size: 0.9rem;" id="workout-coach-suggestion">
+                目標に応じて、今日は「胸」と「三頭筋」のトレーニングがおすすめです！<br>
+                ・ベンチプレス (10回 × 3セット)<br>
+                ・ダンベルフライ (12回 × 3セット)<br>
+                ・プッシュダウン (15回 × 3セット)
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. CHEF RECIPE PAGE -->
+      <section id="page-chef" class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">専属シェフの自炊提案</h1>
+          <p class="page-subtitle">冷蔵庫にある食材や今日の不足PFCに応じて、最適なダイエット自炊レシピを提案します。</p>
+        </div>
+
+        <div class="grid-main">
+          <!-- Input Area -->
+          <div class="glass-card">
+            <h2 style="margin-bottom: 1.5rem;">レシピ提案の条件</h2>
+            <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label class="stat-label">冷蔵庫にある食材（カンマ区切り）</label>
+                <input type="text" id="chef-ingredients" placeholder="鶏胸肉, キャベツ, 卵, 豆腐">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label class="stat-label">調理時間</label>
+                <select id="chef-time">
+                  <option value="15分以内">15分以内（時短）</option>
+                  <option value="30分以内">30分以内（標準）</option>
+                  <option value="60分以内">じっくり調理</option>
+                </select>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label class="stat-label">レシピの方向性</label>
+                <select id="chef-diet-type">
+                  <option value="高タンパク">高タンパク（P補給）</option>
+                  <option value="低脂質">低脂質（Fカット）</option>
+                  <option value="低糖質">低糖質（Cカット）</option>
+                  <option value="低カロリー">とにかく低カロリー</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary" onclick="generateRecipe()">シェフにレシピを提案してもらう</button>
+            </div>
+          </div>
+
+          <!-- Proposed Recipe -->
+          <div class="glass-card neon-border-green" style="display: flex; flex-direction: column; gap: 1.2rem; min-height: 300px; justify-content: center;" id="recipe-result-container">
+            <!-- Loading Indicator -->
+            <div id="recipe-loader" style="display: none; text-align: center; width: 100%;">
+              <div class="spinner" style="margin: 0 auto 1rem;"></div>
+              <h3>専属シェフがレシピを考案中...</h3>
+            </div>
+            
+            <!-- Default Placeholder -->
+            <div id="recipe-placeholder" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
+              🍳 条件を入力してボタンを押すと、AIシェフがオリジナルレシピを作成します。
+            </div>
+
+            <!-- Actual Content -->
+            <div id="recipe-content" style="display: none;">
+              <h2 id="recipe-title" style="margin-bottom: 0.5rem; color: var(--color-secondary);">ヘルシー鶏胸肉のねぎ塩豆腐焼き</h2>
+              
+              <div class="recipe-tags" style="margin-bottom: 1rem;">
+                <span class="tag primary" id="recipe-tag-time">15分</span>
+                <span class="tag primary" id="recipe-tag-pfc">P: 35g / F: 8g / C: 12g</span>
+                <span class="tag primary" id="recipe-tag-cal">260 kcal</span>
+              </div>
+
+              <div class="grid-2" style="margin-bottom: 1.5rem;">
+                <div>
+                  <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-light); padding-bottom: 4px;">材料</h4>
+                  <p id="recipe-ingredients-list" style="font-size: 0.9rem; line-height: 1.6; white-space: pre-line;">
+                    ・鶏胸肉: 150g
+                    ・木綿豆腐: 100g
+                    ・ネギ: 1/2本
+                    ・塩コショウ、ごま油: 少々
+                  </p>
+                </div>
+                <div>
+                  <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-light); padding-bottom: 4px;">手順</h4>
+                  <ol id="recipe-steps" style="font-size: 0.9rem; line-height: 1.6; padding-left: 20px;">
+                    <li>鶏胸肉をそぎ切りにし、塩コショウをする。</li>
+                    <li>豆腐は水切りして一口大に切る。</li>
+                    <li>フライパンにごま油を熱し、鶏肉と豆腐を焼く。</li>
+                    <li>みじん切りにしたネギと塩で調味する。</li>
+                  </ol>
+                </div>
+              </div>
+              
+              <div style="background: rgba(0, 255, 170, 0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(0,255,170,0.1);">
+                <h4 style="margin-bottom: 4px; color: var(--color-secondary);">👨‍🍳 シェフの一言</h4>
+                <p class="advice-text" id="recipe-chef-tip" style="font-size: 0.9rem;">「鶏胸肉は火を通しすぎないのが、しっとり美味しく仕上げる秘訣です。豆腐でかさ増しすることで満足感が高まりますよ！」</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. PERSONAL TRAINER CHAT -->
+      <section id="page-chat" class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">トレーナー＆シェフチャット</h1>
+          <p class="page-subtitle">ダイエットや食事の悩みをパーソナルコーチに相談しましょう。</p>
+        </div>
+
+        <div class="glass-card" style="padding: 0;">
+          <div class="chat-container">
+            <!-- Mode / Advisor Selection -->
+            <div style="padding: 10px 16px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.01);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="stat-label" style="margin: 0;">相談相手:</label>
+                <select id="chat-advisor-select" style="padding: 6px 12px; font-size: 0.85rem;" onchange="changeChatAdvisor()">
+                  <option value="both">二人（トレーナー＆シェフ）</option>
+                  <option value="trainer">レオ（トレーナーのみ）</option>
+                  <option value="chef">レイ（シェフのみ）</option>
+                </select>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="checkbox" id="chat-voice-enable">
+                <label for="chat-voice-enable" class="stat-label" style="margin: 0; cursor: pointer;">音声で聞く</label>
+              </div>
+            </div>
+
+            <!-- Messages Box -->
+            <div class="chat-messages" id="chat-messages-box">
+              <div class="chat-bubble ai">
+                🏋️ <strong>レオ:</strong> ようこそ！FitChef AIチャットルームへ。僕は運動やトレーニングメニューの相談に乗るぞ！<br>
+                🍳 <strong>レイ:</strong> 私は料理やレシピ、PFCに合ったメニュー提案などをしますね。何でも聞いてください。
+              </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-area">
+              <input type="text" id="chat-user-input" placeholder="今日のプロテインはいつ飲めばいい？ / お腹が空いた時のヘルシーなおやつは？" style="flex: 1;" onkeypress="handleChatKeyPress(event)">
+              <button class="btn btn-primary" onclick="sendChatMessage()">送信</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. SETTINGS PAGE -->
+      <section id="page-settings" class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">設定</h1>
+          <p class="page-subtitle">パーソナルプロファイルやAPIキーの管理を行います。</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Profile Settings -->
+          <div class="glass-card">
+            <h2 style="margin-bottom: 1.5rem;">プロフィール設定</h2>
+            <form id="profile-form" onsubmit="saveProfile(event)" style="display: flex; flex-direction: column; gap: 1.2rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">ニックネーム</label>
+                  <input type="text" id="prof-name" value="ゲストユーザー" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">ダイエット目標</label>
+                  <select id="prof-goal-type">
+                    <option value="減量">減量 (体重を落とす)</option>
+                    <option value="維持">維持 (スタイル維持)</option>
+                    <option value="増量">増量 (バルクアップ)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">年齢</label>
+                  <input type="number" id="prof-age" value="28" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">身長 (cm)</label>
+                  <input type="number" id="prof-height" value="170" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">現在の体重 (kg)</label>
+                  <input type="number" id="prof-weight" value="70" step="0.1" required>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">目標体重 (kg)</label>
+                  <input type="number" id="prof-weight-target" value="65" step="0.1" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">目標摂取カロリー (kcal)</label>
+                  <input type="number" id="prof-cal-target" value="1800" required>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">目標タンパク質 (g)</label>
+                  <input type="number" id="prof-p-target" value="120" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">目標脂質 (g)</label>
+                  <input type="number" id="prof-f-target" value="50" required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="stat-label">目標炭水化物 (g)</label>
+                  <input type="number" id="prof-c-target" value="210" required>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">プロフィールを保存</button>
+            </form>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- API Key Settings -->
+            <div class="glass-card neon-border">
+              <h2 style="margin-bottom: 1.5rem; color: var(--color-primary);">AI機能の有効化 (Gemini API)</h2>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
+                食事写真の解析やレシピの生成に <strong>Gemini API</strong> を使用します。お手持ちの Gemini API キーを入力してください。<br>
+                ※キーは暗号化されず、ブラウザの LocalStorage にのみ直接保存されます（外部送信されません）。
+              </p>
+              
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 1rem;">
+                <label class="stat-label">Gemini API キー</label>
+                <input type="password" id="api-key-input" placeholder="AIZAaSy..." style="font-family: monospace;">
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="saveApiKey()">キーを保存</button>
+                <button class="btn btn-secondary" onclick="deleteApiKey()">削除</button>
+              </div>
+              <p id="api-status-msg" style="margin-top: 10px; font-size: 0.85rem; font-weight: bold;"></p>
+            </div>
+
+            <!-- Demo Mode Note -->
+            <div class="glass-card">
+              <h3>💡 デモモードについて</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+                APIキーを設定しない場合は、<strong>デモモード</strong>で動作します。<br>
+                ・食事解析：ダミーのハンバーグ定食をシミュレート<br>
+                ・レシピ提案：固定の鶏胸肉レシピを出力<br>
+                ・チャット：トレーナーとシェフからのテンプレート返答<br>
+                本物のAIパーソナルトレーニングを体験するには、Gemini APIキーの取得をおすすめします。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- JS Scripts -->
+  <script src="trainer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
